@@ -1,0 +1,40 @@
+POST http://localhost:3000/register
+Content-Type: application/json
+
+{
+  "username": "p",
+  "password": "p",
+  "email": "t",
+  "name": "Test User"
+}
+
+###
+
+POST http://localhost:3000/login
+Content-Type: application/json
+
+{
+  "email": "a",
+  "password": "a"
+}
+
+###
+
+GET http://localhost:3000/get_user_and_profile
+Authorization: Bearer 06fb3909ae5cd54536ac829cfd9008bab2f6206bbed4ba74f7c1434795b99495
+# Content-Type: application/json
+# {
+#   "token": "06fb3909ae5cd54536ac829cfd9008bab2f6206bbed4ba74f7c1434795b99495"
+# }
+
+
+
+GET http://localhost:3000/get_user_and_profile?token=06fb3909ae5cd54536ac829cfd9008bab2f6206bbed4ba74f7c1434795b99495
+
+
+
+POST http://localhost:3000/update_profile_data  HTTP/1.1
+Content-Type: application/json
+{
+  {"_id":{"$oid":"68480fe512989e569e2c1c14"},"userId":{"$oid":"68480fe512989e569e2c1c12"},"currentPost":"","pastWork":[],"education":[],"__v":{"$numberInt":"0"}}
+}
