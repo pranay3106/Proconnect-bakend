@@ -175,30 +175,29 @@ export const login = async(req,res)=>{
         console.log(err.message)
     }
 }
-
-export const uploadProfilePicture = async(req, res) => {
-    const {token} = req.body;
-    try{
-        const user = await User.findOne({
-            token:token
-        });
-        if(!user){
-            return res.status(404).json({
-                message: "User not found"
-            });
-        }
-        user.profilePicture = req.file.filename;    
-        await user.save();
-
-        return res.json({
-            message: "Profile picture uploaded successfully"
-        });
-    }catch(err){
-        return res.status(500).json({
-            message: "Internal server error"
-        });
+export const uploadProfilePicture = async (req, res) => {
+  const { token } = req.body;
+  try {
+    const user = await User.findOne({ token: token });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
-}
+
+    // Cloudinary URL here:
+    const imageUrl = req.file.path;
+
+    // Save URL in User model
+    user.profilePicture = imageUrl;
+    await user.save();
+
+    return res.json({
+      message: "Profile picture uploaded successfully",
+      profilePicture: imageUrl,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 
 export const updateUserProfile = async(req, res) => {
     try{
@@ -553,20 +552,18 @@ export const updateProfilePicture = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Update Profile model
     const profile = await Profile.findOne({ userId: user._id });
     if (profile) {
-      profile.profilePicture = req.file.filename;
+      profile.profilePicture = req.file.path;  // Cloudinary URL
       await profile.save();
     }
 
-    // Update User model
-    user.profilePicture = req.file.filename;
+    user.profilePicture = req.file.path;  // Cloudinary URL
     await user.save();
 
     return res.json({
       message: "Profile picture updated",
-      profilePicture: req.file.filename,
+      profilePicture: req.file.path,
     });
   } catch (err) {
     console.error("Profile picture update error:", err);

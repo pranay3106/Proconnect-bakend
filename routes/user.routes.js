@@ -2,18 +2,24 @@ import { Router } from "express";
 import { login, register,uploadProfilePicture,updateUserProfile, getUserAndProfile, updateProfleData, getUserAllProfile,downloadProfile, acceptConnectionRequest, getMyConnectionsRequests, sendConnectionRequest, whatAreMyConnections, getUserProfileAndUserBasedOnUsername, updateProfilePicture} from "../controllers/user.controller.js";
 import multer from "multer";
 import { get } from "mongoose";
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import cloudinary from '../config/cloudinary.js';  // make sure you create this file
+
+
 const router = Router();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'proconnect/profile_pictures',
+    allowed_formats: ['jpg', 'jpeg', 'png'],
   },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
 });
 
 const upload =  multer({ storage: storage });
+
+
+
 router.route('/upload').post(upload.single('file'),uploadProfilePicture);
 router.route("/update_profile_picture").post( upload.single("profile_picture"),updateProfilePicture );
 
