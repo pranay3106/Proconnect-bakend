@@ -4,37 +4,84 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import PDFDocument from "pdfkit";
 import fs from "fs";
-import { connect } from "http2";
 import ConnectionRequest from "../models/connects.model.js";
 import Post from "../models/post.model.js";
 import Comment from "../models/cooment.model.js";
+import path from "path";
 
 
-const convertUserProfileToPDF = async(userData) => {
-    const doc = new PDFDocument();
+// const convertUserProfileToPDF = async(userData) => {
+//     const doc = new PDFDocument();
 
-    const outputPath = crypto.randomBytes(16).toString('hex') + '.pdf';
-    const stream = fs.createWriteStream("/uploads" +outputPath);
-    doc.pipe(stream);
-    doc.image("uploads/" + userData.userId.profilePicture, {align: 'center', width: 100, height: 100});
-    doc.fontSize(14).text(`Username: ${userData.userId.username}`, {align: 'left'});
-    doc.fontSize(14).text(`Email: ${userData.userId.email}`, {align: 'left'});
-    doc.fontSize(14).text(`Name: ${userData.userId.name}`, {align: 'left'});
-    doc.fontSize(14).text(`Bio: ${userData.bio}`, {align: 'left'});
-    doc.fontSize(14).text(`Location: ${userData.location}`, {align: 'left'});
-    doc.fontSize(14).text(`bio: ${userData.bio}`, {align: 'left'});
-    doc.fontSize(14).text(`bio: ${userData.currentPosition}`, {align: 'left'});
-    doc.fontSize(14).text("Past Works");
-    userData.pastWork.forEach((work,index) => {
-        doc.fontSize(12).text(`Company: ${work.company}`, {align: 'left'});
-        doc.fontSize(12).text(`Position: ${work.position}`, {align: 'left'});
-        doc.fontSize(12).text(`Duration: ${work.years}`, {align: 'left'});
-    });
+//     const outputPath = crypto.randomBytes(16).toString('hex') + '.pdf';
+//     const stream = fs.createWriteStream("/uploads/resumes" +outputPath);
+//     doc.pipe(stream);
+//     doc.image("uploads/" + userData.userId.profilePicture, {align: 'center', width: 100, height: 100});
+//     doc.fontSize(14).text(`Username: ${userData.userId.username}`, {align: 'left'});
+//     doc.fontSize(14).text(`Email: ${userData.userId.email}`, {align: 'left'});
+//     doc.fontSize(14).text(`Name: ${userData.userId.name}`, {align: 'left'});
+//     doc.fontSize(14).text(`Bio: ${userData.bio}`, {align: 'left'});
+//     doc.fontSize(14).text(`Location: ${userData.location}`, {align: 'left'});
+//     doc.fontSize(14).text(`bio: ${userData.bio}`, {align: 'left'});
+//     doc.fontSize(14).text(`bio: ${userData.currentPosition}`, {align: 'left'});
+//     doc.fontSize(14).text("Past Works");
+//     userData.pastWork.forEach((work,index) => {
+//         doc.fontSize(12).text(`Company: ${work.company}`, {align: 'left'});
+//         doc.fontSize(12).text(`Position: ${work.position}`, {align: 'left'});
+//         doc.fontSize(12).text(`Duration: ${work.years}`, {align: 'left'});
+//     });
 
-    doc.end();
+//     doc.end();
 
-    return outputPath
-}
+//     return outputPath
+// }
+
+
+
+const convertUserProfileToPDF = async (userData) => {
+  const doc = new PDFDocument();
+  const filename = `${Date.now()}-${userData.userId.username}.pdf`;
+
+  const resumesDir = path.join(process.cwd(), "uploads", "resumes");
+  const outputPath = path.join(resumesDir, filename);
+
+  // ✅ Ensure the uploads/resumes folder exists
+  if (!fs.existsSync(resumesDir)) {
+    fs.mkdirSync(resumesDir, { recursive: true });
+  }
+
+  const stream = fs.createWriteStream(outputPath);
+  doc.pipe(stream);
+
+  // ✅ Add profile picture if it exists
+  const profilePicPath = path.join(process.cwd(), "uploads", userData.userId.profilePicture || "");
+  if (fs.existsSync(profilePicPath)) {
+    doc.image(profilePicPath, { align: "center", width: 100, height: 100 });
+  }
+
+  // ✅ Add profile details
+  doc.fontSize(14).text(`Username: ${userData.userId.username}`);
+  doc.text(`Email: ${userData.userId.email}`);
+  doc.text(`Name: ${userData.userId.name}`);
+  doc.text(`Bio: ${userData.bio}`);
+  doc.text(`Position: ${userData.currentPosition}`);
+  doc.moveDown();
+  doc.text("Past Work:");
+
+  userData.pastWork.forEach((work) => {
+    doc.fontSize(12).text(`Company: ${work.company}`);
+    doc.text(`Position: ${work.position}`);
+    doc.text(`Years: ${work.years}`);
+    doc.moveDown();
+  });
+
+  doc.end();
+
+  // ✅ Return relative path to send to frontend
+  return `uploads/resumes/${filename}`;
+};
+
+
 
 export const register = async(req,res)=>{
 
@@ -216,9 +263,9 @@ export const getUserAndProfile = async(req, res) => {
             userId: user._id
         }).populate('userId', 'username email name profilePicture');
 
-        console.log('Token:', token);
-console.log('User:', user?._id);
-console.log('Profile:', userProfile);
+//         console.log('Token:', token);
+// console.log('User:', user?._id);
+// console.log('Profile:', userProfile);
 
         return res.json(userProfile);
     }catch(err){
@@ -282,7 +329,7 @@ export const getUserAllProfile = async(req, res) => {
         // }
     ).populate('userId', 'username email name profilePicture');
 
-    console.log("profilesss",{profiles})
+    // console.log("profilesss",{profiles})
 
         return res.json({profiles});
     }catch(err){
@@ -300,7 +347,7 @@ export const downloadProfile = async(req, res) => {
     let outputPath = await convertUserProfileToPDF(userrProfile);
     res.status(200).json({
         message: "Profile downloaded successfully",
-        data: outputPath
+        filePath: outputPath
     });
 }
 
@@ -357,7 +404,7 @@ export const sendConnectionRequest = async(req, res) => {
 }
 
 export const getMyConnectionsRequests = async(req, res) => {
-    const {token} = req.body;
+    const {token} = req.query;
     try{
         const user = await User.findOne({
             token: token
@@ -371,7 +418,7 @@ export const getMyConnectionsRequests = async(req, res) => {
 
         const requests = await ConnectionRequest.find({
             userId: user._id
-        }).populate('connectedUserId', 'username email name profilePicture');
+        }).populate('userId', 'username email name profilePicture');
 
         return res.json({requests})
     }
@@ -396,7 +443,7 @@ export const whatAreMyConnections = async(req, res) => {
         const connections = await ConnectionRequest.find({
             connectedUserId: user._id,
 
-        }).populate('connectedUserId', 'username email name profilePicture');
+        }).populate('userId', 'username email name profilePicture');
     return res.json({connections})
     }
     catch(err){
@@ -497,7 +544,6 @@ export const getUserProfileAndUserBasedOnUsername = async(req,res)=>{
     }
 }
 
-
 export const updateProfilePicture = async (req, res) => {
   try {
     const { token } = req.body;
@@ -507,12 +553,21 @@ export const updateProfilePicture = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Update Profile model
     const profile = await Profile.findOne({ userId: user._id });
-    profile.profilePicture = req.file.filename;
+    if (profile) {
+      profile.profilePicture = req.file.filename;
+      await profile.save();
+    }
 
-    await profile.save();
+    // Update User model
+    user.profilePicture = req.file.filename;
+    await user.save();
 
-    return res.json({ message: "Profile picture updated" });
+    return res.json({
+      message: "Profile picture updated",
+      profilePicture: req.file.filename,
+    });
   } catch (err) {
     console.error("Profile picture update error:", err);
     return res.status(500).json({ message: "Internal server error" });

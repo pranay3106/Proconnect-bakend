@@ -15,7 +15,7 @@ const storage = multer.diskStorage({
 
 const upload =  multer({ storage: storage });
 router.route('/upload').post(upload.single('file'),uploadProfilePicture);
-router.route("/update_profile_picture").post( upload.single("profile_picture"), updateProfilePicture);
+router.route("/update_profile_picture").post( upload.single("profile_picture"),updateProfilePicture );
 
 
 router.route('/register').post(register);
@@ -27,10 +27,19 @@ router.route("/update_profile_data").post(updateProfleData);
 router.route("/user/get_all_users").get(getUserAllProfile);
 router.route("/user/download_resume").get(downloadProfile);
 
-router.route("/user/send_connection_request").post(sendConnectionRequest)
-router.route("/user/getConnectionRequests").post(getMyConnectionsRequests)
-router.route("/user/user_connection_request").post(whatAreMyConnections)
+router.route("/user/send_connection_request").post(sendConnectionRequest) //done
+router.route("/user/getConnectionRequests").get(getMyConnectionsRequests)
+router.route("/user/user_connection_request").get(whatAreMyConnections)  // done 
 router.route("/user/accept_connection_Request").post(acceptConnectionRequest)
 router.route("/user/get_profile_based_on_username").get(getUserProfileAndUserBasedOnUsername)
+
+
+// Get all users (route /user/get_all_users) done ...
+
+// Get connections (probably /user/whatAreMyConnections or similar)
+
+// Get connection requests (e.g. /user/getConnectionRequests or /user/user_connection_request) donee..
+
+
 
 export default router;

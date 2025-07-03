@@ -43,9 +43,9 @@ export  const createPost =  async (req, res) => {
 
 export const getAllPosts = async (req,res)=>{
     try{
-        const posts = await Post.find().populate("userId","name username email profilePicture" );
-
-        return res.json({posts})
+        const posts = await Post.find().populate("userId","name username email profilePicture" ).lean();
+const filteredPosts = posts.filter(post => post.userId);
+        return res.json({posts :filteredPosts})
     }
 catch(err){
     return res.status(500).json({message:err.message})

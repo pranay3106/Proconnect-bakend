@@ -34,6 +34,10 @@ const profileSchema = mongoose.Schema({
     ref: "User",
     required: true
   },
+  bio:{
+    type:String,
+    default:""
+  },
   currentPosition: {
     type: String,
     default: ""
@@ -46,6 +50,10 @@ const profileSchema = mongoose.Schema({
     type: [educationSchema],
     default: []
   },
+  // profilePicture: { // <-- ADD THIS FIELD
+  //   type: String,
+  //   default: "default.jpg"
+  // }
 });
 
 const Profile = mongoose.model("Profile", profileSchema);
