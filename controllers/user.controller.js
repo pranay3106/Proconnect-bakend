@@ -553,18 +553,24 @@ export const updateProfilePicture = async (req, res) => {
     }
 
     const profile = await Profile.findOne({ userId: user._id });
+
+    const uploadedImagePath = req.file?.path || "https://res.cloudinary.com/duvlhhzaq/image/upload/v1751558256/default_mkj0mm.jpg";
+
     if (profile) {
-      profile.profilePicture = req.file.path;  // Cloudinary URL
+      profile.profilePicture = uploadedImagePath;
       await profile.save();
     }
 
-    user.profilePicture = req.file.path;  // Cloudinary URL
-    await user.save();
+    console.log("check this ",uploadedImagePath)
 
+    user.profilePicture = uploadedImagePath;
+    await user.save();
+    
     return res.json({
       message: "Profile picture updated",
-      profilePicture: req.file.path,
+      profilePicture: uploadedImagePath,
     });
+
   } catch (err) {
     console.error("Profile picture update error:", err);
     return res.status(500).json({ message: "Internal server error" });

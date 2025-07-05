@@ -4,6 +4,7 @@ import multer from "multer";
 import { get } from "mongoose";
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import cloudinary from '../config/cloudinary.js';  // make sure you create this file
+import  path  from "path";
 
 
 const router = Router();
@@ -16,11 +17,25 @@ const storage = new CloudinaryStorage({
   },
 });
 
+
+
+// Setup multer to save files locally in 'uploads/' folder
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, "uploads/");  // Make sure this folder exists in your backend root
+//   },
+//   filename: function (req, file, cb) {
+//     // Unique filename: timestamp + random + original extension
+//     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+//     cb(null, uniqueSuffix + path.extname(file.originalname));
+//   }
+// });
+
 const upload =  multer({ storage: storage });
 
 
 
-router.route('/upload').post(upload.single('file'),uploadProfilePicture);
+// router.route('/upload').post(upload.single('file'),uploadProfilePicture);
 router.route("/update_profile_picture").post( upload.single("profile_picture"),updateProfilePicture );
 
 

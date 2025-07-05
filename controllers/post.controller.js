@@ -10,36 +10,44 @@ import User from "../models/user.model.js";
         message: "Server is active"
     });
 }
+export const createPost = async (req, res) => {
+  try {
+    const { token, body } = req.body;
+    console.log("Received post body:", body);
+    console.log("Received media file:", req.file);
 
-export  const createPost =  async (req, res) => {
-    const {token} = req.body
-    try {
+    if (!token) return res.status(401).json({ message: "Missing token" });
 
-        // Check if the token is valid
-        const user = await User.findOne({   token: token });
-        if (!user) {
-            return res.status(401).json({
-                message: "USER NOT FOUND"
-            });
-        }
-        // Check if the user is activeCO
-        const post = new Post({
-            userId: user._id,
-            body : req.body.body, // Assuming req.body contains the post data
-            media: req.file != undefined ? req.file.filename : "", // Handle file upload if present
-            fileType: req.file != undefined ? req.file.mimetype : "",
-        })
+    const user = await User.findOne({ token });
+    if (!user) return res.status(401).json({ message: "User not found" });
 
-        await post.save()
+    // req.file.path will be relative path like 'uploads/filename.ext'
+    // Optional: convert it to forward slashes on Windows, or keep as is
+    const mediaUrl = req.file ? req.file.path.replace(/\\/g, "/") : ""; 
+    const media = req.file ? req.file.filename : null;
 
-        return res.status(200).json({message:"post created"})
-    } catch (error) {
-        console.error("Error creating post:", error);
-        return res.status(500).json({
-            message: "Internal server error"
-        });
-    }
-}
+// Save `media` to post.media field in DB
+
+    const fileType = req.file?.mimetype?.split("/")[1] || "";
+
+    const newPost = new Post({
+      userId: user._id,
+      body,
+      media: media,
+      fileType,
+    });
+
+    await newPost.save();
+
+    return res.status(200).json({ message: "Post created successfully", media: mediaUrl });
+  } catch (error) {
+    console.error("❌ Error in createPost:", error);
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+
+
 
 export const getAllPosts = async (req,res)=>{
     try{
