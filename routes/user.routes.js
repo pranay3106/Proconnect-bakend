@@ -36,7 +36,23 @@ const upload =  multer({ storage: storage });
 
 
 // router.route('/upload').post(upload.single('file'),uploadProfilePicture);
-router.route("/update_profile_picture").post( upload.single("profile_picture"),updateProfilePicture );
+// router.route("/update_profile_picture").post( upload.single("profile_picture"),updateProfilePicture );
+
+
+router.post(
+  "/update_profile_picture",
+  (req, res, next) => {
+    upload.single("profile_picture")(req, res, function (err) {
+      if (err) {
+        console.error("Multer error:", err);
+        return res.status(400).json({ message: "Multer error", error: err.message });
+      }
+      next();
+    });
+  },
+  updateProfilePicture
+);
+
 
 
 router.route('/register').post(register);

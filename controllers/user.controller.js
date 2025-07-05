@@ -37,34 +37,48 @@ import path from "path";
 // }
 
 
+import { Buffer } from "buffer";
+import axios from "axios";
 
 const convertUserProfileToPDF = async (userData) => {
   const doc = new PDFDocument();
   const filename = `${Date.now()}-${userData.userId.username}.pdf`;
 
   const resumesDir = path.join(process.cwd(), "uploads", "resumes");
-  const outputPath = path.join(resumesDir, filename);
-
-  // ✅ Ensure the uploads/resumes folder exists
   if (!fs.existsSync(resumesDir)) {
     fs.mkdirSync(resumesDir, { recursive: true });
   }
 
+  const outputPath = path.join(resumesDir, filename);
   const stream = fs.createWriteStream(outputPath);
   doc.pipe(stream);
 
-  // ✅ Add profile picture if it exists
-  const profilePicPath = path.join(process.cwd(), "uploads", userData.userId.profilePicture || "");
-  if (fs.existsSync(profilePicPath)) {
-    doc.image(profilePicPath, { align: "center", width: 100, height: 100 });
+  // ✅ Profile picture from userId.profilePicture
+  const profilePic = userData.userId.profilePicture;
+
+  try {
+    if (profilePic?.startsWith("http")) {
+      // Remote (Cloudinary etc.)
+      const response = await axios.get(profilePic, { responseType: "arraybuffer" });
+      const buffer = Buffer.from(response.data, "binary");
+      doc.image(buffer, { align: "center", width: 100, height: 100 });
+    } else if (profilePic) {
+      // Local path (stored from multer etc.)
+      const localPath = path.join(process.cwd(), profilePic.replace(/\\/g, "/"));
+      if (fs.existsSync(localPath)) {
+        doc.image(localPath, { align: "center", width: 100, height: 100 });
+      }
+    }
+  } catch (err) {
+    console.warn("⚠️ Failed to add profile picture:", err.message);
   }
 
-  // ✅ Add profile details
+  // ✅ Rest of PDF content
   doc.fontSize(14).text(`Username: ${userData.userId.username}`);
   doc.text(`Email: ${userData.userId.email}`);
   doc.text(`Name: ${userData.userId.name}`);
-  doc.text(`Bio: ${userData.bio}`);
-  doc.text(`Position: ${userData.currentPosition}`);
+  doc.text(`Bio: ${userData.bio || "N/A"}`);
+  doc.text(`Position: ${userData.currentPosition || "N/A"}`);
   doc.moveDown();
   doc.text("Past Work:");
 
@@ -76,10 +90,9 @@ const convertUserProfileToPDF = async (userData) => {
   });
 
   doc.end();
-
-  // ✅ Return relative path to send to frontend
   return `uploads/resumes/${filename}`;
 };
+
 
 
 
@@ -338,17 +351,61 @@ export const getUserAllProfile = async(req, res) => {
     }
 }
 
-export const downloadProfile = async(req, res) => {
-    const user_Id = req.query.id;
-    const userrProfile = await Profile.findOne({  userId: user_Id })
-    .populate('userId', 'username email name profilePicture');  
 
-    let outputPath = await convertUserProfileToPDF(userrProfile);
-    res.status(200).json({
-        message: "Profile downloaded successfully",
-        filePath: outputPath
+export const downloadProfile = async (req, res) => {
+  try {
+    const user_Id = req.query.id;
+    const userrProfile = await Profile.findOne({ userId: user_Id }).populate(
+      "userId",
+      "username email name profilePicture"
+    );
+
+    if (!userrProfile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    const doc = new PDFDocument();
+
+    // Set headers to force download
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${userrProfile.userId.username}-resume.pdf"`
+    );
+
+    doc.pipe(res); // Pipe PDF data to the response
+
+    // Add profile picture if available
+    if (userrProfile.userId.profilePicture?.startsWith("http")) {
+      const imgRes = await axios.get(userrProfile.userId.profilePicture, { responseType: "arraybuffer" });
+      const imgBuffer = Buffer.from(imgRes.data, "binary");
+      doc.image(imgBuffer, { width: 100, height: 100 });
+    }
+
+    // Add user details
+    doc.fontSize(14).text(`Username: ${userrProfile.userId.username}`);
+    doc.text(`Email: ${userrProfile.userId.email}`);
+    doc.text(`Name: ${userrProfile.userId.name}`);
+    doc.text(`Bio: ${userrProfile.bio || "N/A"}`);
+    doc.text(`Position: ${userrProfile.currentPosition || "N/A"}`);
+    doc.moveDown();
+    doc.text("Past Work:");
+
+    userrProfile.pastWork.forEach((work) => {
+      doc.fontSize(12).text(`Company: ${work.company}`);
+      doc.text(`Position: ${work.position}`);
+      doc.text(`Years: ${work.years}`);
+      doc.moveDown();
     });
-}
+
+    doc.end(); // Finalize PDF and send it to the browser
+
+  } catch (err) {
+    console.error("PDF download error:", err.message);
+    res.status(500).json({ message: "Failed to generate PDF" });
+  }
+};
+
 
 
 

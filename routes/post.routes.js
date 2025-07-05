@@ -1,6 +1,8 @@
 import { Router } from "express";
 import multer from "multer";
 import path from "path";
+import cloudinary from "../config/cloudinary.js";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 
 import { 
   activeCheck, 
@@ -17,15 +19,23 @@ import { commentPost } from "../controllers/user.controller.js";
 const router = Router();
 
 // Setup multer to save files locally in 'uploads/' folder
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");  // Make sure this folder exists in your backend root
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, "uploads/");  // Make sure this folder exists in your backend root
+//   },
+//   filename: function (req, file, cb) {
+//     // Unique filename: timestamp + random + original extension
+//     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+//     cb(null, uniqueSuffix + path.extname(file.originalname));
+//   }
+// });
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'proconnect/media',
+    allowed_formats: ['jpg', 'jpeg', 'png'],
   },
-  filename: function (req, file, cb) {
-    // Unique filename: timestamp + random + original extension
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
 });
 
 const upload = multer({ storage });

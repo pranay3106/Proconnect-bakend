@@ -7,6 +7,8 @@ import userRoutes from './routes/user.routes.js';
 import postRoutes from './routes/post.routes.js';   
 dotenv.config();
 
+// console.log("Env test CLOUD_API_KEY:", process.env.CLOUD_API_KEY);
+
 mongoose.set('strictQuery', true); // Add this line
 
 const app = express();

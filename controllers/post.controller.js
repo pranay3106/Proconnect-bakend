@@ -33,7 +33,7 @@ export const createPost = async (req, res) => {
     const newPost = new Post({
       userId: user._id,
       body,
-      media: media,
+      media: mediaUrl,
       fileType,
     });
 
