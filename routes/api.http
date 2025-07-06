@@ -10,7 +10,7 @@ Content-Type: application/json
 
 ###
 
-POST http://localhost:3000/login
+POST http://localhost:9091/login
 Content-Type: application/json
 
 {
@@ -47,4 +47,12 @@ Content-Type: application/json
 {
   "token": "11290ba441cb0a790718887c373606a4a20529bb22e5124fa6b2b8b354affbf6",
   "receiverId": "685655f0f486736472b7e12e"
+}
+### 
+
+POST http://localhost:9091/comment HTTP/1.1
+Content-Type: application/json
+{
+     "token": "567397c2b8773b6db5a88b958423a4f2cbee6d714a02a46b6a5a981a34d95874"
+
 }

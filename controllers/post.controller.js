@@ -140,7 +140,7 @@ export const get_comments_by_post = async (req, res) => {
       return res.status(404).json({ message: "POST NOT FOUND" });
     }
 
-    const comments = await Comment.find({ postId: post_id });
+    const comments = await Comment.find({ postId: post_id }).populate("userId","username profilePicture name")
     return res.status(200).json({ comments });
 
   } catch (err) {

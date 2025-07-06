@@ -8,6 +8,7 @@ import ConnectionRequest from "../models/connects.model.js";
 import Post from "../models/post.model.js";
 import Comment from "../models/cooment.model.js";
 import path from "path";
+import Session from "../models/session.model.js";
 
 
 // const convertUserProfileToPDF = async(userData) => {
@@ -133,6 +134,9 @@ const hashedPassword = await bcrypt.hash(password, 10);
  const token = crypto.randomBytes(32).toString('hex');
         await User.updateOne({ _id: newUser._id }, { token });
 
+        const session = new Session({ token, userId:newUser._id });
+await session.save();
+
         // Return user and token
         return res.json({
             message: "User created",
@@ -180,6 +184,9 @@ export const login = async(req,res)=>{
             { _id: user._id },
             { token } 
         );
+
+        const session = new Session({ token, userId: user._id });
+await session.save();
         return res.json({token:token});
     }catch(err){
         // return res.status(500).json({
@@ -257,35 +264,37 @@ export const updateUserProfile = async(req, res) => {
 }
 
 
-export const getUserAndProfile = async(req, res) => {
-    try{
-        const {token} = req.query;
-        const user = await User.findOne({
-            token:token
-        })
-        // .populate('profileId');
+export const getUserAndProfile = async (req, res) => {
+  try {
+    const { token } = req.query;
 
-        if(!user){
-            return res.status(404).json({
-                message: "User not found"
-            });
-        }
-
-        const userProfile = await Profile.findOne({
-            userId: user._id
-        }).populate('userId', 'username email name profilePicture');
-
-//         console.log('Token:', token);
-// console.log('User:', user?._id);
-// console.log('Profile:', userProfile);
-
-        return res.json(userProfile);
-    }catch(err){
-        return res.status(500).json({
-            message: "Internal server error"
-        });
+    // Check token in session collection
+    const session = await Session.findOne({ token });
+    if (!session) {
+      return res.status(404).json({
+        message: "Invalid token or session expired",
+      });
     }
-}
+
+    // Get profile based on userId from session
+    const userProfile = await Profile.findOne({
+      userId: session.userId,
+    }).populate("userId", "username email name profilePicture");
+
+    if (!userProfile) {
+      return res.status(404).json({
+        message: "User profile not found",
+      });
+    }
+
+    return res.json(userProfile);
+  } catch (err) {
+    console.error("Error in getUserAndProfile:", err);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
 
 
 export const updateProfleData = async(req, res) => {
@@ -434,8 +443,8 @@ export const sendConnectionRequest = async(req, res) => {
 
         const existingRequest = await ConnectionRequest.findOne({
             userId: user._id,
-            connectionUserId: connectionUser._id
-        });
+            connectedUserId: connectionUser._id
+        }); 
 
         if(existingRequest){
         return res.json({
@@ -473,14 +482,16 @@ export const getMyConnectionsRequests = async(req, res) => {
         }
 
         const requests = await ConnectionRequest.find({
-            userId: user._id
+            connectedUserId: user._id,
+            status_accepted: false
         }).populate('userId', 'username email name profilePicture');
 
         return res.json({requests})
     }
     catch(err){
+        console.error("Error in getMyConnectionsRequests:", err);
         return res.status(500).json({
-            message: "Internal server error"
+            message: "Internal server error1"
         });
     }
 }
@@ -497,9 +508,13 @@ export const whatAreMyConnections = async(req, res) => {
             });
         }
         const connections = await ConnectionRequest.find({
-            connectedUserId: user._id,
+            $or: [
+        { userId: user._id },
+        { connectedUserId: user._id }
+                ],
+                status_accepted:true
 
-        }).populate('userId', 'username email name profilePicture');
+        }).populate(['userId','connectedUserId'], 'username email name profilePicture');
     return res.json({connections})
     }
     catch(err){
@@ -564,7 +579,7 @@ export const commentPost = async(req,res)=>{
 
         const comment = new Comment({
             userId:user._id,
-            post_id:post._id,
+            postId:post._id,
             body:commentBody
         })
 
